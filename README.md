@@ -11,7 +11,7 @@ This plugin is a drop-in alternative to JMeter's built-in InfluxDB backend liste
 
 * **Structured log events** – every JMeter `SampleResult` is serialised as a JSON object and pushed to the Dynatrace Log Ingest v2 API
 * **API Token authentication** – a single `Authorization: Api-Token <token>` header secures all requests
-* **Batched requests with automatic payload splitting** – the buffer is flushed when it reaches the configured `dt.batch.size`; oversized payloads are automatically split to stay within the Dynatrace limits of 5 MB / 10,000 records per request (conservative thresholds of 4 MB and 9,000 records are used)
+* **Batched requests with automatic payload splitting** – the buffer is flushed when it reaches the configured `dt.batch.size`; oversized payloads are automatically split across multiple requests. The plugin uses conservative thresholds of 4 MB and 9,000 records per request (below the Dynatrace Log Ingest v2 hard limits of 5 MB and 10,000 records) to leave headroom for JSON array framing overhead
 * **Sample filters** – control exactly which samplers are forwarded
   * Include by label substring or regex: `filter1;filter2;filter3`
   * Exclude specific samplers by prefixing the filter with `!!`: `!!exclude_this`
@@ -78,7 +78,7 @@ This plugin is a drop-in alternative to JMeter's built-in InfluxDB backend liste
 
 ### 1. Create an API Token
 
-1. In your Dynatrace environment navigate to **Settings → Access Tokens → Generate new token**.
+1. In your Dynatrace environment navigate to **Settings → Access Tokens → Generate new token** (the exact path may vary slightly depending on your Dynatrace version; you can also search for *Access Tokens* in the Dynatrace navigation search bar).
 2. Give the token a name (e.g. `jmeter-ingest`).
 3. Enable the scope **`logs.ingest`** (under *Log Monitoring*).
 4. Copy the generated token – you will need it in the next step.
