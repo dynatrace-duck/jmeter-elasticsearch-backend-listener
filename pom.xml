@@ -5,7 +5,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>io.github.delirius325</groupId>
 	<artifactId>jmeter.backendlistener.dynatrace</artifactId>
-	<version>3.0.0</version>
+	<version>3.0.1</version>
 	<packaging>jar</packaging>
 
 	<name>jmeter.backendlistener.dynatrace</name>
