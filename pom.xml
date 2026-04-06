@@ -4,13 +4,13 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>io.github.delirius325</groupId>
-	<artifactId>jmeter.backendlistener.elasticsearch</artifactId>
-	<version>2.7.1</version>
+	<artifactId>jmeter.backendlistener.dynatrace</artifactId>
+	<version>3.0.1</version>
 	<packaging>jar</packaging>
 
-	<name>jmeter.backendlistener.elasticsearch</name>
-	<description>JMeter ElasticSearch Backend Listener is a JMeter plugin enabling you to send test results to an ElasticSearch engine. It is meant as an alternative live-monitoring tool to the built-in "InfluxDB" backend listener of JMeter.</description>
-	<url>https://github.com/delirius325/jmeter-elasticsearch-backend-listener</url>
+	<name>jmeter.backendlistener.dynatrace</name>
+	<description>JMeter Dynatrace Backend Listener is a JMeter plugin enabling you to send test results to Dynatrace via the Log Ingest v2 API. It is meant as an alternative live-monitoring tool to the built-in "InfluxDB" backend listener of JMeter.</description>
+	<url>https://github.com/dynatrace-duck/jmeter-elasticsearch-backend-listener</url>
 	<repositories>
 		<repository>
 			<id>jitpack.io</id>
@@ -52,24 +52,16 @@
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<maven.compiler.source>1.8</maven.compiler.source>
-		<maven.compiler.target>1.8</maven.compiler.target>
-		<java.version>1.8</java.version>
-		<junit.version>4.12</junit.version>
-		<junit.jupiter.version>5.0.0</junit.jupiter.version>
-		<junit.vintage.version>${junit.version}.0</junit.vintage.version>
-		<junit.jupiter.version>5.0.0</junit.jupiter.version>
-		<junit.platform.version>1.0.0</junit.platform.version>
+		<maven.compiler.source>11</maven.compiler.source>
+		<maven.compiler.target>11</maven.compiler.target>
+		<java.version>11</java.version>
+		<junit.version>4.13.2</junit.version>
+		<junit.jupiter.version>5.10.2</junit.jupiter.version>
 		<org.apache.jmeter.version>5.3</org.apache.jmeter.version>
 		<org.apache.commons>3.9</org.apache.commons>
-		<org.elasticsearch.client>6.7.1</org.elasticsearch.client>
+		<org.apache.httpcomponents.version>4.5.14</org.apache.httpcomponents.version>
 	</properties>
 	<dependencies>
-		<dependency>
-			<groupId>org.json</groupId>
-			<artifactId>json</artifactId>
-			<version>20180813</version>
-		</dependency>
 		<dependency>
 			<groupId>com.google.code.gson</groupId>
 			<artifactId>gson</artifactId>
@@ -106,9 +98,10 @@
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
-			<groupId>org.elasticsearch.client</groupId>
-			<artifactId>elasticsearch-rest-client</artifactId>
-			<version>${org.elasticsearch.client}</version>
+			<groupId>org.apache.httpcomponents</groupId>
+			<artifactId>httpclient</artifactId>
+			<version>${org.apache.httpcomponents.version}</version>
+			<scope>provided</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.junit.jupiter</groupId>
@@ -123,41 +116,10 @@
 			<scope>test</scope>
 		</dependency>
 		<dependency>
-			<groupId>org.junit.platform</groupId>
-			<artifactId>junit-platform-runner</artifactId>
-			<version>${junit.platform.version}</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
 			<groupId>org.junit.vintage</groupId>
 			<artifactId>junit-vintage-engine</artifactId>
-			<version>${junit.vintage.version}</version>
+			<version>${junit.jupiter.version}</version>
 			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>com.fasterxml.jackson.core</groupId>
-			<artifactId>jackson-databind</artifactId>
-			<version>[2.9.9,)</version>
-		</dependency>
-		<dependency>
-			<groupId>com.amazonaws</groupId>
-			<artifactId>aws-java-sdk-core</artifactId>
-			<version>1.11.495</version>
-		</dependency>
-		<dependency>
-			<groupId>com.amazonaws</groupId>
-			<artifactId>aws-java-sdk-secretsmanager</artifactId>
-			<version>1.11.495</version>
-		</dependency>
-		<dependency>
-			<groupId>vc.inreach.aws</groupId>
-			<artifactId>aws-signing-request-interceptor</artifactId>
-			<version>0.0.22</version>
-		</dependency>
-		<dependency>
-			<groupId>com.github.awslabs</groupId>
-			<artifactId>aws-request-signing-apache-interceptor</artifactId>
-			<version>b3772780da</version>
 		</dependency>
 	</dependencies>
 	<distributionManagement>
@@ -194,11 +156,40 @@
 								</goals>
 							</execution>
 						</executions>
-					</plugin>
-				</plugins>
-			</build>
-		</profile>
-	</profiles>
+				</plugin>
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-source-plugin</artifactId>
+					<version>3.3.1</version>
+					<executions>
+						<execution>
+							<id>attach-sources</id>
+							<goals>
+								<goal>jar-no-fork</goal>
+							</goals>
+						</execution>
+					</executions>
+				</plugin>
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-javadoc-plugin</artifactId>
+					<version>3.6.3</version>
+					<configuration>
+						<source>11</source>
+					</configuration>
+					<executions>
+						<execution>
+							<id>attach-javadocs</id>
+							<goals>
+								<goal>jar</goal>
+							</goals>
+						</execution>
+					</executions>
+				</plugin>
+			</plugins>
+		</build>
+	</profile>
+</profiles>
 	<build>
 		<plugins>
 			<plugin>
@@ -213,63 +204,22 @@
 				</configuration>
 			</plugin>
 			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-source-plugin</artifactId>
-				<version>2.2.1</version>
-				<executions>
-					<execution>
-						<id>attach-sources</id>
-						<goals>
-							<goal>jar-no-fork</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-javadoc-plugin</artifactId>
-				<configuration> 
-					<source>8</source> 
-				</configuration> 
-				<version>2.9.1</version>
-				<executions>
-					<execution>
-						<id>attach-javadocs</id>
-						<goals>
-							<goal>jar</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
-			<plugin>
 				<artifactId>maven-surefire-plugin</artifactId>
-				<version>2.19</version>
-				<dependencies>
-					<dependency>
-						<groupId>org.junit.platform</groupId>
-						<artifactId>junit-platform-surefire-provider</artifactId>
-						<version>1.0.2</version>
-					</dependency>
-					<dependency>
-						<groupId>org.junit.jupiter</groupId>
-						<artifactId>junit-jupiter-engine</artifactId>
-						<version>5.0.2</version>
-					</dependency>
-				</dependencies>
+				<version>3.2.5</version>
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
-				<version>3.7.0</version>
+				<version>3.13.0</version>
 				<configuration>
-					<source>1.8</source>
-					<target>1.8</target>
+					<source>11</source>
+					<target>11</target>
 				</configuration>
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-dependency-plugin</artifactId>
-				<version>2.10</version>
+				<version>3.6.1</version>
 				<executions>
 					<execution>
 						<id>copy-dependencies</id>
@@ -291,7 +241,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-shade-plugin</artifactId>
-				<version>2.4.1</version>
+				<version>3.5.2</version>
 				<executions>
 					<!-- Run shade goal on package phase -->
 					<execution>

@@ -1,12 +1,8 @@
-package io.github.delirius325.jmeter.backendlistener.elasticsearch;
+package io.github.delirius325.jmeter.backendlistener.dynatrace;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -23,26 +19,28 @@ import org.slf4j.LoggerFactory;
 
 import static org.apache.commons.lang3.math.NumberUtils.isCreatable;
 
-public class ElasticSearchMetric {
-    private static final Logger logger = LoggerFactory.getLogger(ElasticSearchMetric.class);
+public class DynatraceMetric {
+    private static final Logger logger = LoggerFactory.getLogger(DynatraceMetric.class);
     private static final String HOSTNAME = solveHostName();
+    private static final String ISO_8601_TIMESTAMP_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX";
 
     private SampleResult sampleResult;
-    private String esTestMode;
-    private String esTimestamp;
-    private int ciBuildNumber;
+    private String dtTestMode;
+    private String dtTimestamp;
+    private String logSource;
     private HashMap<String, Object> json;
     private Set<String> fields;
     private boolean allReqHeaders;
     private boolean allResHeaders;
 
-    public ElasticSearchMetric(
-            SampleResult sr, String testMode, String timeStamp, int buildNumber,
-            boolean parseReqHeaders, boolean parseResHeaders, Set<String> fields) {
+    public DynatraceMetric(
+            SampleResult sr, String testMode, String timeStamp,
+            boolean parseReqHeaders, boolean parseResHeaders, Set<String> fields,
+            String logSource) {
         this.sampleResult = sr;
-        this.esTestMode = testMode.trim();
-        this.esTimestamp = timeStamp.trim();
-        this.ciBuildNumber = buildNumber;
+        this.dtTestMode = testMode.trim();
+        this.dtTimestamp = timeStamp.trim();
+        this.logSource = (logSource != null && !logSource.trim().isEmpty()) ? logSource.trim() : "jmeter";
         this.json = new HashMap<>();
         this.allReqHeaders = parseReqHeaders;
         this.allResHeaders = parseResHeaders;
@@ -59,15 +57,23 @@ public class ElasticSearchMetric {
     }
 
     /**
-     * This method returns the current metric as a Map(String, Object) for the provided sampleResult
+     * This method returns the current metric as a Map(String, Object) for the provided sampleResult.
+     * The returned map always contains the Dynatrace-required fields "timestamp" and "content",
+     * plus all additional sample attributes (subject to the optional field filter).
      *
      * @param context BackendListenerContext
      * @return a JSON Object as Map(String, Object)
      */
     public Map<String, Object> getMetric(BackendListenerContext context) throws Exception {
-        SimpleDateFormat sdf = new SimpleDateFormat(this.esTimestamp);
+        SimpleDateFormat sdf = new SimpleDateFormat(this.dtTimestamp);
+        SimpleDateFormat dtSdf = new SimpleDateFormat(ISO_8601_TIMESTAMP_FORMAT);
 
-        //add all the default SampleResult parameters
+        // DT-required fields: always present, never filtered out
+        this.json.put("timestamp", dtSdf.format(new Date(this.sampleResult.getTimeStamp())));
+        this.json.put("content", this.sampleResult.getSampleLabel());
+        this.json.put("log.source", this.logSource);
+
+        // Add all default SampleResult parameters
         addFilteredJSON("AllThreads", this.sampleResult.getAllThreads());
         addFilteredJSON("BodySize", this.sampleResult.getBodySizeAsLong());
         addFilteredJSON("Bytes", this.sampleResult.getBytesAsLong());
@@ -92,7 +98,7 @@ public class ElasticSearchMetric {
         addFilteredJSON("InjectorHostname", HOSTNAME);
 
         // Add the details according to the mode that is set
-        switch (this.esTestMode) {
+        switch (this.dtTestMode) {
             case "debug":
                 addDetails();
                 break;
@@ -144,47 +150,37 @@ public class ElasticSearchMetric {
     }
 
     /**
-     * This method adds the ElapsedTime as a key:value pair in the JSON object. Also, depending on whether or not the
-     * tests were launched from a CI tool (i.e Jenkins), it will add a hard-coded version of the ElapsedTime for results
-     * comparison purposes
+     * Adds the ElapsedTime (ms since test start) to the metric.
      */
     private void addElapsedTime() {
-        Date elapsedTime;
-
-        if (this.ciBuildNumber != 0) {
-            elapsedTime = getElapsedTime(true);
-            addFilteredJSON("BuildNumber", this.ciBuildNumber);
-
-            if (elapsedTime != null)
-                addFilteredJSON("ElapsedTimeComparison", elapsedTime.getTime());
-        }
-
-        elapsedTime = getElapsedTime(false);
-        if (elapsedTime != null)
-            addFilteredJSON("ElapsedTime", elapsedTime.getTime());
+        long elapsed = System.currentTimeMillis() - JMeterContextService.getTestStartTime();
+        addFilteredJSON("ElapsedTime", elapsed);
     }
 
     /**
-     * This method adds the ElapsedDuration in seconds.
+     * Adds the ElapsedDuration in seconds since test start.
      */
     private void addElapsedDuration() {
         long elapsed = (System.currentTimeMillis() - JMeterContextService.getTestStartTime()) / 1000;
         addFilteredJSON("ElapsedDuration", elapsed);
     }
 
-
     /**
-     * Methods that add all custom fields added by the user in the Backend Listener's GUI panel
+     * Adds all custom fields added by the user in the Backend Listener's GUI panel.
+     * Parameters starting with "dt." are treated as plugin configuration and are excluded.
      *
      * @param context BackendListenerContext
      */
     private void addCustomFields(BackendListenerContext context) {
+        if (context == null) {
+            return;
+        }
         Iterator<String> pluginParameters = context.getParameterNamesIterator();
         String parameter;
         while (pluginParameters.hasNext()) {
             String parameterName = pluginParameters.next();
 
-            if (!parameterName.startsWith("es.") && context.containsParameter(parameterName)
+            if (!parameterName.startsWith("dt.") && context.containsParameter(parameterName)
                     && !"".equals(parameter = context.getParameter(parameterName).trim())) {
                 if (isCreatable(parameter)) {
                     addFilteredJSON(parameterName, Long.parseLong(parameter));
@@ -196,7 +192,7 @@ public class ElasticSearchMetric {
     }
 
     /**
-     * Method that adds the request and response's body/headers
+     * Adds the request and response body/headers.
      */
     private void addDetails() {
         addFilteredJSON("RequestHeaders", this.sampleResult.getRequestHeaders());
@@ -207,16 +203,11 @@ public class ElasticSearchMetric {
     }
 
     /**
-     * This method will parse the headers and look for custom variables passed through as header. It can also separate
-     * all headers into different ElasticSearch document properties by passing "true" This is a work-around for the
-     * native behaviour of JMeter, where variables are not accessible within the backend listener.
+     * Parses request and/or response headers into individual JSON properties when the
+     * corresponding parse flags are enabled.
      *
-     * @param allReqHeaders boolean to determine if the user wants to separate ALL request headers into different ES JSON
-     *                      properties.
-     * @param allResHeaders boolean to determine if the user wants to separate ALL response headers into different ES JSON
-     *                      properties.
-     *                      <p>
-     *                      NOTE: This will be fixed as soon as a patch comes in for JMeter to change the behaviour.
+     * @param allReqHeaders when true, all request headers are added as individual JSON properties
+     * @param allResHeaders when true, all response headers are added as individual JSON properties
      */
     private void parseHeadersAsJsonProps(boolean allReqHeaders, boolean allResHeaders) {
         LinkedList<String[]> headersArrayList = new LinkedList<String[]>();
@@ -229,23 +220,10 @@ public class ElasticSearchMetric {
             headersArrayList.add(this.sampleResult.getResponseHeaders().split("\n"));
         }
 
-        if (!allReqHeaders && !allResHeaders) {
-            headersArrayList.add(this.sampleResult.getRequestHeaders().split("\n"));
-            headersArrayList.add(this.sampleResult.getResponseHeaders().split("\n"));
-        }
-
         for (String[] lines : headersArrayList) {
             for (int i = 0; i < lines.length; i++) {
                 String[] header = lines[i].split(":", 2);
-
-                // if not all res/req headers and header contains special X-tag
-                if (!allReqHeaders && !allResHeaders && header.length > 1) {
-                    if (header[0].startsWith("X-es-backend-")) {
-                        this.json.put(header[0].replaceAll("X-es-backend-", "").trim(), header[1].trim());
-                    }
-                }
-
-                if ((allReqHeaders || allResHeaders) && header.length > 1) {
+                if (header.length > 1) {
                     this.json.put(header[0].trim(), header[1].trim());
                 }
             }
@@ -253,55 +231,15 @@ public class ElasticSearchMetric {
     }
 
     /**
-     * Adds a given key-value pair to JSON if the key is contained in the field filter or in case of empty field filter
+     * Adds a given key-value pair to the JSON map if the key is contained in the field filter,
+     * or if the field filter is empty (meaning all fields are included).
      *
-     * @param key
-     * @param value
+     * @param key   field name
+     * @param value field value
      */
     private void addFilteredJSON(String key, Object value) {
         if (this.fields.size() == 0 || this.fields.contains(key.toLowerCase())) {
             this.json.put(key, value);
         }
     }
-
-    /**
-     * This method is meant to return the elapsed time in a human readable format. The purpose of this is mostly for
-     * build comparison in Kibana. By doing this, the user is able to set the X-axis of his graph to this date and split
-     * the series by build numbers. It allows him to overlap test results and see if there is regression or not.
-     *
-     * @param forBuildComparison boolean to determine if there is CI (continuous integration) or not
-     * @return The elapsed time in YYYY-MM-dd HH:mm:ss format
-     */
-    public Date getElapsedTime(boolean forBuildComparison) {
-        String sElapsed;
-        //Calculate the elapsed time (Starting from midnight on a random day - enables us to compare of two loads over their duration)
-        long start = JMeterContextService.getTestStartTime();
-        long end = System.currentTimeMillis();
-        long elapsed = (end - start);
-        long minutes = (elapsed / 1000) / 60;
-        long seconds = (elapsed / 1000) % 60;
-
-        Calendar cal = Calendar.getInstance();
-        cal.set(Calendar.HOUR_OF_DAY, 0); //If there is more than an hour of data, the number of minutes/seconds will increment this
-        cal.set(Calendar.MINUTE, (int) minutes);
-        cal.set(Calendar.SECOND, (int) seconds);
-
-        if (forBuildComparison) {
-            sElapsed = String.format("2017-01-01 %02d:%02d:%02d", cal.get(Calendar.HOUR_OF_DAY),
-                    cal.get(Calendar.MINUTE), cal.get(Calendar.SECOND));
-        } else {
-            sElapsed = String.format("%s %02d:%02d:%02d",
-                    DateTimeFormatter.ofPattern("yyyy-mm-dd").format(LocalDateTime.now()),
-                    cal.get(Calendar.HOUR_OF_DAY), cal.get(Calendar.MINUTE), cal.get(Calendar.SECOND));
-        }
-
-        SimpleDateFormat formatter = new SimpleDateFormat("yyyy-mm-dd HH:mm:ss");
-        try {
-            return formatter.parse(sElapsed);
-        } catch (ParseException e) {
-            logger.error("Unexpected error occured computing elapsed date", e);
-            return null;
-        }
-    }
-
 }
