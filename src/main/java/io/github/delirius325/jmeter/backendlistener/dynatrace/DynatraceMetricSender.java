@@ -90,7 +90,7 @@ public class DynatraceMetricSender implements Closeable {
 
         List<List<String>> chunks = splitIntoChunks();
         for (List<String> chunk : chunks) {
-            sendPayload(buildJsonArray(chunk));
+            sendPayload(buildJsonArray(chunk), chunk.size());
         }
     }
 
@@ -149,10 +149,11 @@ public class DynatraceMetricSender implements Closeable {
     /**
      * POSTs a JSON array payload to the Dynatrace Log Ingest v2 endpoint.
      *
-     * @param body serialised JSON array
+     * @param body       serialised JSON array
+     * @param recordCount number of log records in this payload (used for logging)
      * @throws IOException if an I/O error occurs during the request
      */
-    private void sendPayload(String body) throws IOException {
+    private void sendPayload(String body, int recordCount) throws IOException {
         HttpPost post = new HttpPost(this.dtUrl);
         post.setHeader("Authorization", "Api-Token " + this.apiToken);
         post.setHeader("Content-Type", "application/json; charset=utf-8");
@@ -161,7 +162,7 @@ public class DynatraceMetricSender implements Closeable {
         try (CloseableHttpResponse response = this.httpClient.execute(post)) {
             int statusCode = response.getStatusLine().getStatusCode();
             if (statusCode == HttpStatus.SC_NO_CONTENT || statusCode == HttpStatus.SC_OK) {
-                logger.debug("Dynatrace Backend Listener successfully ingested {} log records.", this.metricList.size());
+                logger.debug("Dynatrace Backend Listener successfully ingested {} log records.", recordCount);
             } else {
                 logger.error("Dynatrace Backend Listener failed to ingest log records. Response status: {}",
                         response.getStatusLine().toString());

@@ -93,7 +93,7 @@ public class DynatraceBackendClient extends AbstractBackendListenerClient {
                     this.sender.addToList(new Gson().toJson(metric.getMetric(context)));
                 } catch (Exception e) {
                     logger.error(
-                            "The Dynatrace Backend Listener was unable to add sampler to the list of samplers to send. More info in JMeter's console.");
+                            "The Dynatrace Backend Listener was unable to add sampler to the list of samplers to send.");
                     e.printStackTrace();
                 }
             }

@@ -22,7 +22,7 @@ import static org.apache.commons.lang3.math.NumberUtils.isCreatable;
 public class DynatraceMetric {
     private static final Logger logger = LoggerFactory.getLogger(DynatraceMetric.class);
     private static final String HOSTNAME = solveHostName();
-    private static final String DT_TIMESTAMP_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX";
+    private static final String ISO_8601_TIMESTAMP_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX";
 
     private SampleResult sampleResult;
     private String dtTestMode;
@@ -63,7 +63,7 @@ public class DynatraceMetric {
      */
     public Map<String, Object> getMetric(BackendListenerContext context) throws Exception {
         SimpleDateFormat sdf = new SimpleDateFormat(this.dtTimestamp);
-        SimpleDateFormat dtSdf = new SimpleDateFormat(DT_TIMESTAMP_FORMAT);
+        SimpleDateFormat dtSdf = new SimpleDateFormat(ISO_8601_TIMESTAMP_FORMAT);
 
         // DT-required fields: always present, never filtered out
         this.json.put("timestamp", dtSdf.format(new Date(this.sampleResult.getTimeStamp())));
