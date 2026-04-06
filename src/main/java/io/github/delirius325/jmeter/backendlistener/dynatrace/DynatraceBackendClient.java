@@ -25,6 +25,7 @@ public class DynatraceBackendClient extends AbstractBackendListenerClient {
     private static final String DT_TEST_MODE = "dt.test.mode";
     private static final String DT_PARSE_REQ_HEADERS = "dt.parse.all.req.headers";
     private static final String DT_PARSE_RES_HEADERS = "dt.parse.all.res.headers";
+    private static final String DT_LOG_SOURCE = "dt.log.source";
     private static final long DEFAULT_TIMEOUT_MS = 10000L;
     private static final Logger logger = LoggerFactory.getLogger(DynatraceBackendClient.class);
     private static final Map<String, String> DEFAULT_ARGS = new LinkedHashMap<>();
@@ -40,6 +41,7 @@ public class DynatraceBackendClient extends AbstractBackendListenerClient {
         DEFAULT_ARGS.put(DT_TEST_MODE, "info");
         DEFAULT_ARGS.put(DT_PARSE_REQ_HEADERS, "false");
         DEFAULT_ARGS.put(DT_PARSE_RES_HEADERS, "false");
+        DEFAULT_ARGS.put(DT_LOG_SOURCE, "jmeter");
     }
 
     private DynatraceMetricSender sender;
@@ -86,7 +88,8 @@ public class DynatraceBackendClient extends AbstractBackendListenerClient {
             DynatraceMetric metric = new DynatraceMetric(sr, context.getParameter(DT_TEST_MODE),
                     context.getParameter(DT_TIMESTAMP),
                     context.getBooleanParameter(DT_PARSE_REQ_HEADERS, false),
-                    context.getBooleanParameter(DT_PARSE_RES_HEADERS, false), fields);
+                    context.getBooleanParameter(DT_PARSE_RES_HEADERS, false), fields,
+                    context.getParameter(DT_LOG_SOURCE));
 
             if (validateSample(context, sr)) {
                 try {

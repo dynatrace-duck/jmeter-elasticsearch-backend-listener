@@ -41,7 +41,7 @@ public class TestDynatraceBackend {
     public void testRequiredDtFieldsAlwaysPresent() throws Exception {
         Set<String> emptyFilter = new HashSet<>();
         DynatraceMetric metric = new DynatraceMetric(
-                successfulSample, "info", TIMESTAMP_FORMAT, false, false, emptyFilter);
+                successfulSample, "info", TIMESTAMP_FORMAT, false, false, emptyFilter, "jmeter");
 
         Map<String, Object> result = metric.getMetric(null);
 
@@ -57,7 +57,7 @@ public class TestDynatraceBackend {
     @Test
     public void testTimestampIsIso8601() throws Exception {
         DynatraceMetric metric = new DynatraceMetric(
-                successfulSample, "info", TIMESTAMP_FORMAT, false, false, new HashSet<>());
+                successfulSample, "info", TIMESTAMP_FORMAT, false, false, new HashSet<>(), "jmeter");
 
         Map<String, Object> result = metric.getMetric(null);
 
@@ -78,7 +78,7 @@ public class TestDynatraceBackend {
         filter.add("responsecode");
 
         DynatraceMetric metric = new DynatraceMetric(
-                successfulSample, "info", TIMESTAMP_FORMAT, false, false, filter);
+                successfulSample, "info", TIMESTAMP_FORMAT, false, false, filter, "jmeter");
 
         Map<String, Object> result = metric.getMetric(null);
 
@@ -93,6 +93,7 @@ public class TestDynatraceBackend {
         // DT-required fields must always be present even with a filter
         assertNotNull("timestamp must be present despite field filter", result.get("timestamp"));
         assertNotNull("content must be present despite field filter", result.get("content"));
+        assertNotNull("log.source must be present despite field filter", result.get("log.source"));
     }
 
     /**
@@ -101,7 +102,7 @@ public class TestDynatraceBackend {
     @Test
     public void testInfoModeAddsDetailsForFailedSamples() throws Exception {
         DynatraceMetric metric = new DynatraceMetric(
-                failedSample, "info", TIMESTAMP_FORMAT, false, false, new HashSet<>());
+                failedSample, "info", TIMESTAMP_FORMAT, false, false, new HashSet<>(), "jmeter");
 
         Map<String, Object> result = metric.getMetric(null);
 
@@ -117,7 +118,7 @@ public class TestDynatraceBackend {
     @Test
     public void testInfoModeOmitsDetailsForSuccessfulSamples() throws Exception {
         DynatraceMetric metric = new DynatraceMetric(
-                successfulSample, "info", TIMESTAMP_FORMAT, false, false, new HashSet<>());
+                successfulSample, "info", TIMESTAMP_FORMAT, false, false, new HashSet<>(), "jmeter");
 
         Map<String, Object> result = metric.getMetric(null);
 
@@ -133,7 +134,7 @@ public class TestDynatraceBackend {
     @Test
     public void testQuietModeOmitsDetails() throws Exception {
         DynatraceMetric metric = new DynatraceMetric(
-                failedSample, "quiet", TIMESTAMP_FORMAT, false, false, new HashSet<>());
+                failedSample, "quiet", TIMESTAMP_FORMAT, false, false, new HashSet<>(), "jmeter");
 
         Map<String, Object> result = metric.getMetric(null);
 
@@ -147,7 +148,7 @@ public class TestDynatraceBackend {
     @Test
     public void testDebugModeAddsDetailsAlways() throws Exception {
         DynatraceMetric metric = new DynatraceMetric(
-                successfulSample, "debug", TIMESTAMP_FORMAT, false, false, new HashSet<>());
+                successfulSample, "debug", TIMESTAMP_FORMAT, false, false, new HashSet<>(), "jmeter");
 
         Map<String, Object> result = metric.getMetric(null);
 
@@ -161,11 +162,64 @@ public class TestDynatraceBackend {
     @Test
     public void testElapsedFieldsPresent() throws Exception {
         DynatraceMetric metric = new DynatraceMetric(
-                successfulSample, "info", TIMESTAMP_FORMAT, false, false, new HashSet<>());
+                successfulSample, "info", TIMESTAMP_FORMAT, false, false, new HashSet<>(), "jmeter");
 
         Map<String, Object> result = metric.getMetric(null);
 
         assertNotNull("ElapsedTime should be present", result.get("ElapsedTime"));
         assertNotNull("ElapsedDuration should be present", result.get("ElapsedDuration"));
+    }
+
+    /**
+     * Verifies that the "log.source" field is always present and defaults to "jmeter".
+     */
+    @Test
+    public void testLogSourceDefaultValue() throws Exception {
+        DynatraceMetric metric = new DynatraceMetric(
+                successfulSample, "info", TIMESTAMP_FORMAT, false, false, new HashSet<>(), "jmeter");
+
+        Map<String, Object> result = metric.getMetric(null);
+
+        assertNotNull("log.source must always be present", result.get("log.source"));
+        assertEquals("log.source should default to 'jmeter'", "jmeter", result.get("log.source"));
+    }
+
+    /**
+     * Verifies that the "log.source" field reflects a custom configured value.
+     */
+    @Test
+    public void testLogSourceCustomValue() throws Exception {
+        DynatraceMetric metric = new DynatraceMetric(
+                successfulSample, "info", TIMESTAMP_FORMAT, false, false, new HashSet<>(), "my-custom-source");
+
+        Map<String, Object> result = metric.getMetric(null);
+
+        assertEquals("log.source should reflect the configured value", "my-custom-source", result.get("log.source"));
+    }
+
+    /**
+     * Verifies that a blank log.source falls back to "jmeter".
+     */
+    @Test
+    public void testLogSourceFallsBackWhenBlank() throws Exception {
+        DynatraceMetric metric = new DynatraceMetric(
+                successfulSample, "info", TIMESTAMP_FORMAT, false, false, new HashSet<>(), "  ");
+
+        Map<String, Object> result = metric.getMetric(null);
+
+        assertEquals("log.source should fall back to 'jmeter' when blank", "jmeter", result.get("log.source"));
+    }
+
+    /**
+     * Verifies that a null log.source falls back to "jmeter".
+     */
+    @Test
+    public void testLogSourceFallsBackWhenNull() throws Exception {
+        DynatraceMetric metric = new DynatraceMetric(
+                successfulSample, "info", TIMESTAMP_FORMAT, false, false, new HashSet<>(), null);
+
+        Map<String, Object> result = metric.getMetric(null);
+
+        assertEquals("log.source should fall back to 'jmeter' when null", "jmeter", result.get("log.source"));
     }
 }

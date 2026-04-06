@@ -27,6 +27,7 @@ public class DynatraceMetric {
     private SampleResult sampleResult;
     private String dtTestMode;
     private String dtTimestamp;
+    private String logSource;
     private HashMap<String, Object> json;
     private Set<String> fields;
     private boolean allReqHeaders;
@@ -34,10 +35,12 @@ public class DynatraceMetric {
 
     public DynatraceMetric(
             SampleResult sr, String testMode, String timeStamp,
-            boolean parseReqHeaders, boolean parseResHeaders, Set<String> fields) {
+            boolean parseReqHeaders, boolean parseResHeaders, Set<String> fields,
+            String logSource) {
         this.sampleResult = sr;
         this.dtTestMode = testMode.trim();
         this.dtTimestamp = timeStamp.trim();
+        this.logSource = (logSource != null && !logSource.trim().isEmpty()) ? logSource.trim() : "jmeter";
         this.json = new HashMap<>();
         this.allReqHeaders = parseReqHeaders;
         this.allResHeaders = parseResHeaders;
@@ -68,6 +71,7 @@ public class DynatraceMetric {
         // DT-required fields: always present, never filtered out
         this.json.put("timestamp", dtSdf.format(new Date(this.sampleResult.getTimeStamp())));
         this.json.put("content", this.sampleResult.getSampleLabel());
+        this.json.put("log.source", this.logSource);
 
         // Add all default SampleResult parameters
         addFilteredJSON("AllThreads", this.sampleResult.getAllThreads());
