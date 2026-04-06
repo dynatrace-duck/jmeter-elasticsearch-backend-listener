@@ -4,13 +4,13 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>io.github.delirius325</groupId>
-	<artifactId>jmeter.backendlistener.elasticsearch</artifactId>
-	<version>2.7.1</version>
+	<artifactId>jmeter.backendlistener.dynatrace</artifactId>
+	<version>3.0.0</version>
 	<packaging>jar</packaging>
 
-	<name>jmeter.backendlistener.elasticsearch</name>
-	<description>JMeter ElasticSearch Backend Listener is a JMeter plugin enabling you to send test results to an ElasticSearch engine. It is meant as an alternative live-monitoring tool to the built-in "InfluxDB" backend listener of JMeter.</description>
-	<url>https://github.com/delirius325/jmeter-elasticsearch-backend-listener</url>
+	<name>jmeter.backendlistener.dynatrace</name>
+	<description>JMeter Dynatrace Backend Listener is a JMeter plugin enabling you to send test results to Dynatrace via the Log Ingest v2 API. It is meant as an alternative live-monitoring tool to the built-in "InfluxDB" backend listener of JMeter.</description>
+	<url>https://github.com/dynatrace-duck/jmeter-elasticsearch-backend-listener</url>
 	<repositories>
 		<repository>
 			<id>jitpack.io</id>
@@ -62,14 +62,9 @@
 		<junit.platform.version>1.0.0</junit.platform.version>
 		<org.apache.jmeter.version>5.3</org.apache.jmeter.version>
 		<org.apache.commons>3.9</org.apache.commons>
-		<org.elasticsearch.client>6.7.1</org.elasticsearch.client>
+		<org.apache.httpcomponents.version>4.5.14</org.apache.httpcomponents.version>
 	</properties>
 	<dependencies>
-		<dependency>
-			<groupId>org.json</groupId>
-			<artifactId>json</artifactId>
-			<version>20180813</version>
-		</dependency>
 		<dependency>
 			<groupId>com.google.code.gson</groupId>
 			<artifactId>gson</artifactId>
@@ -106,9 +101,10 @@
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
-			<groupId>org.elasticsearch.client</groupId>
-			<artifactId>elasticsearch-rest-client</artifactId>
-			<version>${org.elasticsearch.client}</version>
+			<groupId>org.apache.httpcomponents</groupId>
+			<artifactId>httpclient</artifactId>
+			<version>${org.apache.httpcomponents.version}</version>
+			<scope>provided</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.junit.jupiter</groupId>
@@ -133,31 +129,6 @@
 			<artifactId>junit-vintage-engine</artifactId>
 			<version>${junit.vintage.version}</version>
 			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>com.fasterxml.jackson.core</groupId>
-			<artifactId>jackson-databind</artifactId>
-			<version>[2.9.9,)</version>
-		</dependency>
-		<dependency>
-			<groupId>com.amazonaws</groupId>
-			<artifactId>aws-java-sdk-core</artifactId>
-			<version>1.11.495</version>
-		</dependency>
-		<dependency>
-			<groupId>com.amazonaws</groupId>
-			<artifactId>aws-java-sdk-secretsmanager</artifactId>
-			<version>1.11.495</version>
-		</dependency>
-		<dependency>
-			<groupId>vc.inreach.aws</groupId>
-			<artifactId>aws-signing-request-interceptor</artifactId>
-			<version>0.0.22</version>
-		</dependency>
-		<dependency>
-			<groupId>com.github.awslabs</groupId>
-			<artifactId>aws-request-signing-apache-interceptor</artifactId>
-			<version>b3772780da</version>
 		</dependency>
 	</dependencies>
 	<distributionManagement>
