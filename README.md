@@ -10,7 +10,7 @@ This plugin is a drop-in alternative to JMeter's built-in InfluxDB backend liste
 ### Features
 
 * **Structured log events** – every JMeter `SampleResult` is serialised as a JSON object and pushed to the Dynatrace Log Ingest v2 API
-* **API Token authentication** – a single `Authorization: Api-Token <token>` header secures all requests
+* **Single Dynatrace API token** – the same `dt.api.token` value is used for every Dynatrace ingest request made by the listener
 * **Batched requests with automatic payload splitting** – the buffer is flushed when it reaches the configured `dt.batch.size`; oversized payloads are automatically split across multiple requests. The plugin uses conservative thresholds of 4 MB and 9,000 records per request (below the Dynatrace Log Ingest v2 hard limits of 5 MB and 10,000 records) to leave headroom for JSON array framing overhead
 * **Sample filters** – control exactly which samplers are forwarded
   * Include by label substring or regex: `filter1;filter2;filter3`
@@ -33,7 +33,7 @@ This plugin is a drop-in alternative to JMeter's built-in InfluxDB backend liste
 | Java (JDK) | 11 |
 | Apache Maven | 3.6 |
 | Apache JMeter | 5.3 |
-| Dynatrace environment | SaaS or Managed with Log Monitoring enabled |
+| Dynatrace environment | SaaS or Managed with Log Monitoring and Metrics ingest enabled |
 
 ---
 
@@ -80,8 +80,8 @@ This plugin is a drop-in alternative to JMeter's built-in InfluxDB backend liste
 
 1. In your Dynatrace environment navigate to **Settings → Access Tokens → Generate new token** (the exact path may vary slightly depending on your Dynatrace version; you can also search for *Access Tokens* in the Dynatrace navigation search bar).
 2. Give the token a name (e.g. `jmeter-ingest`).
-3. Enable the scope **`logs.ingest`** (under *Log Monitoring*).
-4. Copy the generated token – you will need it in the next step.
+3. Enable the scopes **`logs.ingest`** and **`metrics.ingest`** on the same token.
+4. Copy the generated token – you will use this single token for all Dynatrace data sent by the listener.
 
 ### 2. Find your Log Ingest Endpoint
 
@@ -107,6 +107,7 @@ https://<your-domain>/e/<env-id>/api/v2/logs/ingest
    io.github.delirius325.jmeter.backendlistener.dynatrace.DynatraceBackendClient
    ```
 3. Fill in the parameters described in the table below. At a minimum you must set `dt.url` and `dt.api.token`.
+   Metric collection is always on; there is no separate metric token or metric enable/disable toggle to configure.
 
 ---
 
@@ -115,7 +116,7 @@ https://<your-domain>/e/<env-id>/api/v2/logs/ingest
 | Parameter | Default | Description |
 |---|---|---|
 | `dt.url` | `https://<env-id>.live.dynatrace.com/api/v2/logs/ingest` | Full Dynatrace Log Ingest v2 endpoint URL |
-| `dt.api.token` | *(empty)* | Dynatrace API token with `logs.ingest` scope |
+| `dt.api.token` | *(empty)* | Single Dynatrace API token with both `logs.ingest` and `metrics.ingest` scopes |
 | `dt.timestamp` | `yyyy-MM-dd'T'HH:mm:ss.SSSZZ` | `SimpleDateFormat` pattern used for `SampleStartTime` / `SampleEndTime` attributes |
 | `dt.batch.size` | `100` | Number of samples to buffer before flushing to Dynatrace |
 | `dt.timeout.ms` | `10000` | HTTP socket timeout in milliseconds |
@@ -127,6 +128,8 @@ https://<your-domain>/e/<env-id>/api/v2/logs/ingest
 | `dt.log.source` | `jmeter` | Value written to the `log.source` attribute on every event |
 
 > **Custom fields:** any parameter you add in the GUI that does *not* start with `dt.` is forwarded as an extra log attribute. Numeric values are stored as numbers; everything else is stored as a string.
+
+> **Deprecated settings:** older test plans may still contain metric-specific parameters such as a separate token or enable/disable toggle. These settings are ignored; the listener always collects metrics and always uses `dt.api.token`.
 
 Every log event always includes the following Dynatrace-required fields regardless of any `dt.fields` filter:
 
@@ -239,4 +242,3 @@ mvn verify
 ```
 
 Copy the resulting shaded JAR from `target/` to `$JMETER_HOME/lib/ext/` and restart JMeter to test your changes end-to-end.
-
